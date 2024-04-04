@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from concurrent.futures import Future
 
+import pebble
+
 from flask_executor.helpers import InstanceProxy
 
 
@@ -80,7 +82,7 @@ class FutureCollection:
         return self._futures.pop(future_key, None)
 
 
-class FutureProxy(InstanceProxy, Future):
+class FutureProxy(InstanceProxy, pebble.ProcessFuture):
     """A FutureProxy is an instance proxy that wraps an instance of
     :class:`concurrent.futures.Future`. Since an executor can't be made to
     return a subclassed Future object, this proxy class is used to override

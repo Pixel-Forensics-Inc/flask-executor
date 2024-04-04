@@ -3,6 +3,7 @@ import contextvars
 import copy
 import re
 
+import pebble
 from flask import copy_current_request_context, current_app, g
 
 from flask_executor.futures import FutureCollection, FutureProxy
@@ -115,6 +116,8 @@ class Executor(InstanceProxy, concurrent.futures._base.Executor):
             _executor = concurrent.futures.ThreadPoolExecutor
         elif executor_type == 'process':
             _executor = concurrent.futures.ProcessPoolExecutor
+        if executor_type == 'pebble_process':
+            _executor = pebble.ProcessPool
         else:
             raise ValueError("{} is not a valid executor type.".format(executor_type))
         return _executor(max_workers=executor_max_workers)
@@ -161,7 +164,11 @@ class Executor(InstanceProxy, concurrent.futures._base.Executor):
         :rtype: flask_executor.FutureProxy
         """
         fn = self._prepare_fn(fn)
-        future = self._self.submit(fn, *args, **kwargs)
+        future = None
+        if isinstance(self._self, pebble.ProcessPool):
+            future = self._self.schedule(fn, *args, **kwargs)
+        else:
+            future = self._self.submit(fn, *args, **kwargs)
         for callback in self._default_done_callbacks:
             future.add_done_callback(callback)
         return FutureProxy(future, self)
@@ -253,7 +260,8 @@ class Executor(InstanceProxy, concurrent.futures._base.Executor):
             future = fib.submit(5)
             results = fib.map(range(1, 6))
         """
-        if isinstance(self._self, concurrent.futures.ProcessPoolExecutor):
+        if isinstance(self._self, concurrent.futures.ProcessPoolExecutor) or \
+           isinstance(self._self, pebble.ProcessPool):
             raise TypeError(
                 "Can't decorate {}: Executors that use multiprocessing "
                 "don't support decorators".format(fn)
