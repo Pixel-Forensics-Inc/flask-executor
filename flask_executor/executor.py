@@ -116,7 +116,7 @@ class Executor(InstanceProxy, concurrent.futures._base.Executor):
             _executor = concurrent.futures.ThreadPoolExecutor
         elif executor_type == 'process':
             _executor = concurrent.futures.ProcessPoolExecutor
-        if executor_type == 'pebble_process':
+        elif executor_type == 'pebble_process':
             _executor = pebble.ProcessPool
         else:
             raise ValueError("{} is not a valid executor type.".format(executor_type))
